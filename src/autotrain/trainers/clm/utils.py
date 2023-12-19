@@ -98,8 +98,7 @@ def process_data(data, tokenizer, config):
     data = data[[config.text_column]]
     if config.add_eos_token:
         data[config.text_column] = data[config.text_column] + tokenizer.eos_token
-    data = Dataset.from_pandas(data)
-    return data
+    return Dataset.from_pandas(data)
 
 
 def group_texts(examples, config):
@@ -122,8 +121,7 @@ def group_texts(examples, config):
 
 
 def tokenize(examples, tokenizer, config):
-    output = tokenizer(examples[config.text_column])
-    return output
+    return tokenizer(examples[config.text_column])
 
 
 def _tokenize(prompt, tokenizer, config):

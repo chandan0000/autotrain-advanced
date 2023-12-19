@@ -51,32 +51,44 @@ datasets:
 def _binary_classification_metrics(pred):
     raw_predictions, labels = pred
     predictions = np.argmax(raw_predictions, axis=1)
-    result = {
+    return {
         "f1": metrics.f1_score(labels, predictions),
         "precision": metrics.precision_score(labels, predictions),
         "recall": metrics.recall_score(labels, predictions),
         "auc": metrics.roc_auc_score(labels, raw_predictions[:, 1]),
         "accuracy": metrics.accuracy_score(labels, predictions),
     }
-    return result
 
 
 def _multi_class_classification_metrics(pred):
     raw_predictions, labels = pred
     predictions = np.argmax(raw_predictions, axis=1)
-    results = {
+    return {
         "f1_macro": metrics.f1_score(labels, predictions, average="macro"),
         "f1_micro": metrics.f1_score(labels, predictions, average="micro"),
-        "f1_weighted": metrics.f1_score(labels, predictions, average="weighted"),
-        "precision_macro": metrics.precision_score(labels, predictions, average="macro"),
-        "precision_micro": metrics.precision_score(labels, predictions, average="micro"),
-        "precision_weighted": metrics.precision_score(labels, predictions, average="weighted"),
-        "recall_macro": metrics.recall_score(labels, predictions, average="macro"),
-        "recall_micro": metrics.recall_score(labels, predictions, average="micro"),
-        "recall_weighted": metrics.recall_score(labels, predictions, average="weighted"),
+        "f1_weighted": metrics.f1_score(
+            labels, predictions, average="weighted"
+        ),
+        "precision_macro": metrics.precision_score(
+            labels, predictions, average="macro"
+        ),
+        "precision_micro": metrics.precision_score(
+            labels, predictions, average="micro"
+        ),
+        "precision_weighted": metrics.precision_score(
+            labels, predictions, average="weighted"
+        ),
+        "recall_macro": metrics.recall_score(
+            labels, predictions, average="macro"
+        ),
+        "recall_micro": metrics.recall_score(
+            labels, predictions, average="micro"
+        ),
+        "recall_weighted": metrics.recall_score(
+            labels, predictions, average="weighted"
+        ),
         "accuracy": metrics.accuracy_score(labels, predictions),
     }
-    return results
 
 
 def create_model_card(config, trainer, num_classes):
@@ -91,11 +103,10 @@ def create_model_card(config, trainer, num_classes):
     else:
         eval_scores = "No validation metrics available"
 
-    model_card = MODEL_CARD.format(
+    return MODEL_CARD.format(
         dataset=config.data_path,
         validation_metrics=eval_scores,
     )
-    return model_card
 
 
 def pause_endpoint(params):

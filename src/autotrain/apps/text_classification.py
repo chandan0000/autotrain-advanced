@@ -251,16 +251,20 @@ def main():
             hyperparam_visibility = {}
             if components[param_choice] == "AutoTrain":
                 for _hyperparameter in hyperparameters:
-                    if _hyperparameter.elem_id in ["hyp_num_jobs", "hyp_language"]:
-                        hyperparam_visibility[_hyperparameter.elem_id] = True
-                    else:
-                        hyperparam_visibility[_hyperparameter.elem_id] = False
+                    hyperparam_visibility[
+                        _hyperparameter.elem_id
+                    ] = _hyperparameter.elem_id in [
+                        "hyp_num_jobs",
+                        "hyp_language",
+                    ]
             else:
                 for _hyperparameter in hyperparameters:
-                    if _hyperparameter.elem_id in ["hyp_num_jobs", "hyp_language"]:
-                        hyperparam_visibility[_hyperparameter.elem_id] = False
-                    else:
-                        hyperparam_visibility[_hyperparameter.elem_id] = True
+                    hyperparam_visibility[
+                        _hyperparameter.elem_id
+                    ] = _hyperparameter.elem_id not in [
+                        "hyp_num_jobs",
+                        "hyp_language",
+                    ]
             op = [
                 h.update(
                     interactive=hyperparam_visibility.get(h.elem_id, False),
@@ -273,7 +277,7 @@ def main():
 
         param_choice.change(
             _handle_param_choice_change,
-            inputs=set([param_choice]),
+            inputs={param_choice},
             outputs=hyperparameters + [jobs_df],
         )
 
@@ -282,9 +286,9 @@ def main():
                 _ = pd.read_csv(components[training_data][0].name, nrows=2).columns.tolist()
             except TypeError:
                 raise gr.Error("Please upload training data first.")
-            if len(str(components[col_map_text].strip())) == 0:
+            if not str(components[col_map_text].strip()):
                 raise gr.Error("Text column cannot be empty.")
-            if len(str(components[col_map_target].strip())) == 0:
+            if not str(components[col_map_target].strip()):
                 raise gr.Error("Target column cannot be empty.")
             if components[col_map_text] == components[col_map_target]:
                 raise gr.Error("Text and Target column cannot be the same.")

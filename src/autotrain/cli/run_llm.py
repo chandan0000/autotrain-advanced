@@ -467,13 +467,10 @@ class RunAutoTrainLLMCommand(BaseAutoTrainCommand):
         cuda_available = torch.cuda.is_available()
         mps_available = torch.backends.mps.is_available()
 
-        if not cuda_available and not mps_available:
+        if cuda_available or mps_available:
+            self.num_gpus = torch.cuda.device_count() if cuda_available else 1
+        else:
             raise ValueError("No GPU/MPS device found. LLM training requires an accelerator")
-
-        if cuda_available:
-            self.num_gpus = torch.cuda.device_count()
-        elif mps_available:
-            self.num_gpus = 1
 
     def run(self):
         from autotrain.backend import SpaceRunner

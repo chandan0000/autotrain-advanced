@@ -25,10 +25,7 @@ def save_training_params(config):
 
 
 def pause_endpoint(params):
-    if isinstance(params, dict):
-        token = params["token"]
-    else:
-        token = params.token
+    token = params["token"] if isinstance(params, dict) else params.token
     endpoint_id = os.environ["ENDPOINT_ID"]
     username = endpoint_id.split("/")[0]
     project_name = endpoint_id.split("/")[1]
@@ -69,7 +66,7 @@ def pause_space(params, is_failure=False):
 def monitor(func):
     def wrapper(*args, **kwargs):
         config = kwargs.get("config", None)
-        if config is None and len(args) > 0:
+        if config is None and args:
             config = args[0]
 
         try:
@@ -118,12 +115,8 @@ class AutoTrainParams(BaseModel):
         # Parameters not supplied by the user
         defaults = set(self.model_fields.keys())
         supplied = set(data.keys())
-        not_supplied = defaults - supplied
-        if not_supplied:
+        if not_supplied := defaults - supplied:
             logger.warning(f"Parameters not supplied by user and set to default: {', '.join(not_supplied)}")
 
-        # Parameters that were supplied but not used
-        # This is a naive implementation. It might catch some internal Pydantic params.
-        unused = supplied - set(self.model_fields)
-        if unused:
+        if unused := supplied - set(self.model_fields):
             logger.warning(f"Parameters supplied but not used: {', '.join(unused)}")

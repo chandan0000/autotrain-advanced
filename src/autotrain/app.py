@@ -73,17 +73,17 @@ HIDDEN_PARAMS = [
     "target_columns",
 ]
 
-PARAMS = {}
-PARAMS["llm"] = LLMTrainingParams(
-    target_modules="",
-    log="tensorboard",
-    mixed_precision="fp16",
-    quantization="int4",
-    peft=True,
-    block_size=1024,
-    epochs=3,
-).model_dump()
-
+PARAMS = {
+    "llm": LLMTrainingParams(
+        target_modules="",
+        log="tensorboard",
+        mixed_precision="fp16",
+        quantization="int4",
+        peft=True,
+        block_size=1024,
+        epochs=3,
+    ).model_dump()
+}
 PARAMS["text-classification"] = TextClassificationParams(
     mixed_precision="fp16",
 ).model_dump()
@@ -108,8 +108,7 @@ PARAMS["dreambooth"] = DreamBoothTrainingParams(
 def get_sorted_models(hub_models):
     hub_models = [{"id": m.modelId, "downloads": m.downloads} for m in hub_models if m.private is False]
     hub_models = sorted(hub_models, key=lambda x: x["downloads"], reverse=True)
-    hub_models = [m["id"] for m in hub_models]
-    return hub_models
+    return [m["id"] for m in hub_models]
 
 
 def fetch_models():
@@ -282,10 +281,7 @@ async def fetch_model_choices(task: str):
         hub_models = MODEL_CHOICE["tabular-regression"]
     else:
         raise NotImplementedError
-    resp = []
-    for hub_model in hub_models:
-        resp.append({"id": hub_model, "name": hub_model})
-    return resp
+    return [{"id": hub_model, "name": hub_model} for hub_model in hub_models]
 
 
 @app.post("/create_project", response_class=JSONResponse)
@@ -319,8 +315,7 @@ async def handle_form(
                         logger.info(f"Process {_pid} is already completed. Skipping...")
                     DB.delete_job(_pid)
 
-        running_jobs = DB.get_running_jobs()
-        if running_jobs:
+        if running_jobs := DB.get_running_jobs():
             logger.info(f"Running jobs: {running_jobs}")
             raise HTTPException(
                 status_code=409, detail="Another job is already running. Please wait for it to finish."
@@ -336,10 +331,10 @@ async def handle_form(
     if task.startswith("llm"):
         trainer = task.split(":")[1].lower()
         col_map = {"text": "text"}
-        if trainer == "reward":
-            col_map["rejected_text"] = "rejected_text"
         if trainer == "dpo":
             col_map["prompt"] = "prompt"
+            col_map["rejected_text"] = "rejected_text"
+        elif trainer == "reward":
             col_map["rejected_text"] = "rejected_text"
         dset = AutoTrainDataset(
             train_data=training_files,

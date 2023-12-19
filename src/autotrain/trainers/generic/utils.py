@@ -35,32 +35,30 @@ def pull_dataset_repo(params):
 
 
 def uninstall_requirements(params):
-    if os.path.exists(f"{params.project_name}/requirements.txt"):
-        # read the requirements.txt
-        uninstall_list = []
-        with open(f"{params.project_name}/requirements.txt", "r") as f:
-            for line in f:
-                if line.startswith("-"):
-                    uninstall_list.append(line[1:])
-
-        # create an uninstall.txt
-        with open(f"{params.project_name}/uninstall.txt", "w") as f:
-            for line in uninstall_list:
-                f.write(line)
-
-        pipe = subprocess.Popen(
-            [
-                "pip",
-                "uninstall",
-                "-r",
-                "uninstall.txt",
-                "-y",
-            ],
-            cwd=params.project_name,
-        )
-        pipe.wait()
-        logger.info("Requirements uninstalled.")
+    if not os.path.exists(f"{params.project_name}/requirements.txt"):
         return
+    # read the requirements.txt
+    uninstall_list = []
+    with open(f"{params.project_name}/requirements.txt", "r") as f:
+        uninstall_list.extend(line[1:] for line in f if line.startswith("-"))
+    # create an uninstall.txt
+    with open(f"{params.project_name}/uninstall.txt", "w") as f:
+        for line in uninstall_list:
+            f.write(line)
+
+    pipe = subprocess.Popen(
+        [
+            "pip",
+            "uninstall",
+            "-r",
+            "uninstall.txt",
+            "-y",
+        ],
+        cwd=params.project_name,
+    )
+    pipe.wait()
+    logger.info("Requirements uninstalled.")
+    return
 
 
 def install_requirements(params):
@@ -70,10 +68,7 @@ def install_requirements(params):
         install_list = []
 
         with open(f"{params.project_name}/requirements.txt", "r") as f:
-            for line in f:
-                if not line.startswith("-"):
-                    install_list.append(line)
-
+            install_list.extend(line for line in f if not line.startswith("-"))
         with open(f"{params.project_name}/requirements.txt", "w") as f:
             for line in install_list:
                 f.write(line)

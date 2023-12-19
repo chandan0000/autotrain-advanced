@@ -24,10 +24,7 @@ XL_MODELS = [
 
 
 def create_model_card(repo_id: str, base_model: str, train_text_encoder: bool, prompt: str, repo_folder: str):
-    if train_text_encoder:
-        text_encoder_text = "trained"
-    else:
-        text_encoder_text = "not trained"
+    text_encoder_text = "trained" if train_text_encoder else "not trained"
     yaml = f"""
 ---
 base_model: {base_model}
@@ -83,15 +80,13 @@ def tokenize_prompt(tokenizer, prompt, tokenizer_max_length=None):
     else:
         max_length = tokenizer.model_max_length
 
-    text_inputs = tokenizer(
+    return tokenizer(
         prompt,
         truncation=True,
         padding="max_length",
         max_length=max_length,
         return_tensors="pt",
     )
-
-    return text_inputs
 
 
 def encode_prompt(text_encoder, input_ids, attention_mask, text_encoder_use_attention_mask=None):
@@ -214,15 +209,14 @@ def setup_prior_preservation(accelerator, config):
 
 
 def load_model_components(config, device, weight_dtype):
-    tokenizers = []
-    tokenizers.append(
+    tokenizers = [
         AutoTokenizer.from_pretrained(
             config.model,
             subfolder="tokenizer",
             revision=config.revision,
             use_fast=False,
         )
-    )
+    ]
     if config.xl:
         tokenizers.append(
             AutoTokenizer.from_pretrained(
@@ -233,23 +227,21 @@ def load_model_components(config, device, weight_dtype):
             )
         )
 
-    cls_text_encoders = []
-    cls_text_encoders.append(
-        import_model_class_from_model_name_or_path(config.model, config.revision),
-    )
+    cls_text_encoders = [
+        import_model_class_from_model_name_or_path(
+            config.model, config.revision
+        )
+    ]
     if config.xl:
         cls_text_encoders.append(
             import_model_class_from_model_name_or_path(config.model, config.revision, subfolder="text_encoder_2")
         )
 
-    text_encoders = []
-    text_encoders.append(
+    text_encoders = [
         cls_text_encoders[0].from_pretrained(
-            config.model,
-            subfolder="text_encoder",
-            revision=config.revision,
+            config.model, subfolder="text_encoder", revision=config.revision
         )
-    )
+    ]
     if config.xl:
         text_encoders.append(
             cls_text_encoders[1].from_pretrained(
@@ -303,18 +295,17 @@ def enable_gradient_checkpointing(unet, text_encoders, config):
 
 def enable_xformers(unet, config):
     if config.xformers:
-        if is_xformers_available():
-            logger.info("Enabling xformers")
-            import xformers
-
-            xformers_version = version.parse(xformers.__version__)
-            if xformers_version == version.parse("0.0.16"):
-                logger.warn(
-                    "xFormers 0.0.16 cannot be used for training in some GPUs. If you observe problems during training, please update xFormers to at least 0.0.17. See https://huggingface.co/docs/diffusers/main/en/optimization/xformers for more details."
-                )
-            unet.enable_xformers_memory_efficient_attention()
-        else:
+        if not is_xformers_available():
             raise ValueError("xformers is not available. Make sure it is installed correctly")
+        logger.info("Enabling xformers")
+        import xformers
+
+        xformers_version = version.parse(xformers.__version__)
+        if xformers_version == version.parse("0.0.16"):
+            logger.warn(
+                "xFormers 0.0.16 cannot be used for training in some GPUs. If you observe problems during training, please update xFormers to at least 0.0.17. See https://huggingface.co/docs/diffusers/main/en/optimization/xformers for more details."
+            )
+        unet.enable_xformers_memory_efficient_attention()
 
 
 def get_optimizer(config, unet_lora_parameters, text_lora_parameters):
@@ -340,14 +331,13 @@ def get_optimizer(config, unet_lora_parameters, text_lora_parameters):
     else:
         raise ValueError("More than 2 text encoders are not supported.")
 
-    optimizer = optimizer_class(
+    return optimizer_class(
         params_to_optimize,
         lr=config.lr,
         betas=(config.adam_beta1, config.adam_beta2),
         weight_decay=config.adam_weight_decay,
         eps=config.adam_epsilon,
     )
-    return optimizer
 
 
 def pre_compute_text_embeddings(config, tokenizers, text_encoders):

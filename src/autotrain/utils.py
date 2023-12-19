@@ -95,10 +95,10 @@ def http_post(
 
 
 def get_task(task_id: int) -> str:
-    for key, value in TASKS.items():
-        if value == task_id:
-            return key
-    return "❌ Unsupported task! Please update autonlp"
+    return next(
+        (key for key, value in TASKS.items() if value == task_id),
+        "❌ Unsupported task! Please update autonlp",
+    )
 
 
 def get_user_token():
@@ -115,7 +115,7 @@ def user_authentication(token):
         cookies = {"token": token}
     try:
         response = requests.get(
-            config.HF_API + "/api/whoami-v2",
+            f"{config.HF_API}/api/whoami-v2",
             headers=headers,
             cookies=cookies,
             timeout=3,
@@ -176,8 +176,7 @@ def clone_hf_repo(repo_url: str, local_dir: str, token: str) -> Repository:
         cwd=local_dir,
     )
 
-    data_repo = Repository(local_dir=local_dir, token=token)
-    return data_repo
+    return Repository(local_dir=local_dir, token=token)
 
 
 def create_repo(project_name, autotrain_user, huggingface_token, model_path):
