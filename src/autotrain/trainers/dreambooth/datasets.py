@@ -18,10 +18,7 @@ class PromptDataset(Dataset):
         return self.num_samples
 
     def __getitem__(self, index):
-        example = {}
-        example["prompt"] = self.prompt
-        example["index"] = index
-        return example
+        return {"prompt": self.prompt, "index": index}
 
 
 class DreamBoothDatasetXL(Dataset):
@@ -74,19 +71,17 @@ class DreamBoothDatasetXL(Dataset):
         return self._length
 
     def __getitem__(self, index):
-        example = {}
         instance_image = Image.open(self.instance_images_path[index % self.num_instance_images])
         instance_image = exif_transpose(instance_image)
 
-        if not instance_image.mode == "RGB":
+        if instance_image.mode != "RGB":
             instance_image = instance_image.convert("RGB")
-        example["instance_images"] = self.image_transforms(instance_image)
-
+        example = {"instance_images": self.image_transforms(instance_image)}
         if self.class_data_root:
             class_image = Image.open(self.class_images_path[index % self.num_class_images])
             class_image = exif_transpose(class_image)
 
-            if not class_image.mode == "RGB":
+            if class_image.mode != "RGB":
                 class_image = class_image.convert("RGB")
             example["class_images"] = self.image_transforms(class_image)
 
@@ -152,7 +147,7 @@ class DreamBoothDataset(Dataset):
         else:
             max_length = tokenizer.model_max_length
 
-        text_inputs = tokenizer(
+        return tokenizer(
             prompt,
             truncation=True,
             padding="max_length",
@@ -160,45 +155,41 @@ class DreamBoothDataset(Dataset):
             return_tensors="pt",
         )
 
-        return text_inputs
-
     def __getitem__(self, index):
-        example = {}
         instance_image = Image.open(self.instance_images_path[index % self.num_instance_images])
         instance_image = exif_transpose(instance_image)
 
-        if not instance_image.mode == "RGB":
+        if instance_image.mode != "RGB":
             instance_image = instance_image.convert("RGB")
-        example["instance_images"] = self.image_transforms(instance_image)
-
+        example = {"instance_images": self.image_transforms(instance_image)}
         if not self.config.xl:
-            if self.encoder_hidden_states is not None:
-                example["instance_prompt_ids"] = self.encoder_hidden_states
-            else:
+            if self.encoder_hidden_states is None:
                 text_inputs = self._tokenize_prompt(
                     self.tokenizer, self.instance_prompt, tokenizer_max_length=self.tokenizer_max_length
                 )
                 example["instance_prompt_ids"] = text_inputs.input_ids
                 example["instance_attention_mask"] = text_inputs.attention_mask
 
+            else:
+                example["instance_prompt_ids"] = self.encoder_hidden_states
         if self.class_data_root:
             class_image = Image.open(self.class_images_path[index % self.num_class_images])
             class_image = exif_transpose(class_image)
 
-            if not class_image.mode == "RGB":
+            if class_image.mode != "RGB":
                 class_image = class_image.convert("RGB")
             example["class_images"] = self.image_transforms(class_image)
 
             if not self.config.xl:
-                if self.instance_prompt_encoder_hidden_states is not None:
-                    example["class_prompt_ids"] = self.instance_prompt_encoder_hidden_states
-                else:
+                if self.instance_prompt_encoder_hidden_states is None:
                     class_text_inputs = self._tokenize_prompt(
                         self.tokenizer, self.class_prompt, tokenizer_max_length=self.tokenizer_max_length
                     )
                     example["class_prompt_ids"] = class_text_inputs.input_ids
                     example["class_attention_mask"] = class_text_inputs.attention_mask
 
+                else:
+                    example["class_prompt_ids"] = self.instance_prompt_encoder_hidden_states
         return example
 
 

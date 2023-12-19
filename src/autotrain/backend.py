@@ -204,16 +204,19 @@ class SpaceRunner:
             "ep-aws-useast1-8xl": "aws_us-east-1_gpu_8xlarge_p4de",
         }
 
-        if not isinstance(self.params, GenericParams):
-            if self.params.repo_id is not None:
-                self.username = self.params.repo_id.split("/")[0]
-            elif self.params.username is not None:
-                self.username = self.params.username
-            else:
-                raise ValueError("Must provide either repo_id or username")
-        else:
+        if (
+            not isinstance(self.params, GenericParams)
+            and self.params.repo_id is not None
+        ):
+            self.username = self.params.repo_id.split("/")[0]
+        elif (
+            not isinstance(self.params, GenericParams)
+            and self.params.username is not None
+            or isinstance(self.params, GenericParams)
+        ):
             self.username = self.params.username
-
+        else:
+            raise ValueError("Must provide either repo_id or username")
         self.ep_api_url = f"https://api.endpoints.huggingface.cloud/v2/endpoint/{self.username}"
 
         if self.params.repo_id is None and self.params.username is not None:
@@ -242,47 +245,40 @@ class SpaceRunner:
             if self.backend != "local":
                 data_path = _llm_munge_data(self.params, self.username)
                 self.params.data_path = data_path
-            space_id = self._create_space()
-            return space_id
+            return self._create_space()
         if isinstance(self.params, TextClassificationParams):
             self.task_id = 2
             if self.backend != "local":
                 data_path = _text_clf_munge_data(self.params, self.username)
                 self.params.data_path = data_path
-            space_id = self._create_space()
-            return space_id
+            return self._create_space()
         if isinstance(self.params, TabularParams):
             self.task_id = 26
             if self.backend != "local":
                 data_path = _tabular_munge_data(self.params, self.username)
                 self.params.data_path = data_path
-            space_id = self._create_space()
-            return space_id
+            return self._create_space()
         if isinstance(self.params, GenericParams):
             self.task_id = 27
-            space_id = self._create_space()
-            return space_id
+            return self._create_space()
         if isinstance(self.params, DreamBoothTrainingParams):
             self.task_id = 25
             if self.backend != "local":
                 data_path = _dreambooth_munge_data(self.params, self.username)
                 self.params.image_path = data_path
-            space_id = self._create_space()
-            return space_id
+            return self._create_space()
         if isinstance(self.params, Seq2SeqParams):
             self.task_id = 28
             if self.backend != "local":
                 data_path = _seq2seq_munge_data(self.params, self.username)
                 self.params.data_path = data_path
-            space_id = self._create_space()
-            return space_id
+            return self._create_space()
         if isinstance(self.params, ImageClassificationParams):
             self.task_id = 18
             if self.backend != "local":
                 data_path = _img_clf_munge_data(self.params, self.username)
                 self.params.data_path = data_path
-            space_id = self._create_space()
-            return space_id
+            return self._create_space()
         raise NotImplementedError
 
     def _create_readme(self):
@@ -295,8 +291,7 @@ class SpaceRunner:
         _readme += "pinned: false\n"
         _readme += "duplicated_from: autotrain-projects/autotrain-advanced\n"
         _readme += "---\n"
-        _readme = io.BytesIO(_readme.encode())
-        return _readme
+        return io.BytesIO(_readme.encode())
 
     def _add_secrets(self, api, repo_id):
         if isinstance(self.params, GenericParams):
@@ -394,13 +389,9 @@ class SpaceRunner:
                 return
             else:
                 local_runner = LocalRunner(env_vars=env_vars)
-                pid = local_runner.create()
-                return pid
-
+                return local_runner.create()
         if self.backend.startswith("ep-"):
-            endpoint_id = self._create_endpoint()
-            return endpoint_id
-
+            return self._create_endpoint()
         api = HfApi(token=self.params.token)
         repo_id = f"{self.username}/autotrain-{self.params.project_name}"
         api.create_repo(
@@ -437,8 +428,7 @@ class LocalRunner:
         logger.info("Starting server")
         params = self.env_vars["PARAMS"]
         task_id = int(self.env_vars["TASK_ID"])
-        training_pid = run_training(params, task_id, local=True)
-        return training_pid
+        return run_training(params, task_id, local=True)
 
 
 @dataclass
@@ -466,8 +456,10 @@ class NGCRunner:
         logger.info(f"backend: {self.backend}")
 
     def create(self):
-        cmd = "ngc base-command job run --name {job_name}"
-        cmd += " --priority NORMAL --order 50 --preempt RUNONCE --min-timeslice 0s"
+        cmd = (
+            "ngc base-command job run --name {job_name}"
+            + " --priority NORMAL --order 50 --preempt RUNONCE --min-timeslice 0s"
+        )
         cmd += " --total-runtime 259200s --ace {ngc_ace} --org {ngc_org} --instance {instance}"
         cmd += " --commandline 'set -x; conda run --no-capture-output -p /app/env autotrain api --port 7860 --host 0.0.0.0' -p 7860 --result /results"
         cmd += " --image '{ngc_org}/autotrain-advanced:latest'"
@@ -482,8 +474,9 @@ class NGCRunner:
         for k, v in self.env_vars.items():
             cmd += f" --env-var {k}:{v}"
 
-        ngc_config_cmd = "ngc config set"
-        ngc_config_cmd += " --team {ngc_team} --org {ngc_org} --ace {ngc_ace}"
+        ngc_config_cmd = (
+            "ngc config set" + " --team {ngc_team} --org {ngc_org} --ace {ngc_ace}"
+        )
         ngc_config_cmd = ngc_config_cmd.format(
             # ngc_api_key=self.ngc_api_key,
             ngc_team=self.ngc_team,

@@ -250,19 +250,18 @@ class RunAutoTrainImageClassificationCommand(BaseAutoTrainCommand):
             if getattr(self.args, arg_name) is None:
                 setattr(self.args, arg_name, False)
 
-        if self.args.train:
-            if self.args.project_name is None:
-                raise ValueError("Project name must be specified")
-            if self.args.data_path is None:
-                raise ValueError("Data path must be specified")
-            if self.args.model is None:
-                raise ValueError("Model must be specified")
-            if self.args.push_to_hub:
-                if self.args.repo_id is None:
-                    raise ValueError("Repo id must be specified for push to hub")
-        else:
+        if not self.args.train:
             raise ValueError("Must specify --train, --deploy or --inference")
 
+        if self.args.project_name is None:
+            raise ValueError("Project name must be specified")
+        if self.args.data_path is None:
+            raise ValueError("Data path must be specified")
+        if self.args.model is None:
+            raise ValueError("Model must be specified")
+        if self.args.push_to_hub:
+            if self.args.repo_id is None:
+                raise ValueError("Repo id must be specified for push to hub")
         if not torch.cuda.is_available():
             self.device = "cpu"
 

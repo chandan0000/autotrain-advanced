@@ -50,11 +50,11 @@ class AutoTrainProject:
         if self.task in ("text_multi_class_classification", "text_binary_classification", "seq2seq"):
             self.col_map_text = "autotrain_text"
             self.col_map_target = "autotrain_label"
-        if self.task == "lm_training":
-            self.col_map_text = "autotrain_text"
         if self.task == "image_multi_class_classification":
             self.col_map_image = "autotrain_image"
             self.col_map_target = "autotrain_label"
+        elif self.task == "lm_training":
+            self.col_map_text = "autotrain_text"
         if self.task.startswith("tabular_"):
             self.col_map_id = "autotrain_id"
             _tabular_target_cols = ["autotrain_label"]

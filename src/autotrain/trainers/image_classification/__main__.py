@@ -116,7 +116,9 @@ def train(config):
         per_device_eval_batch_size=2 * config.batch_size,
         learning_rate=config.lr,
         num_train_epochs=config.epochs,
-        evaluation_strategy=config.evaluation_strategy if config.valid_split is not None else "no",
+        evaluation_strategy=config.evaluation_strategy
+        if config.valid_split is not None
+        else "no",
         logging_steps=logging_steps,
         save_total_limit=config.save_total_limit,
         save_strategy=config.save_strategy,
@@ -129,7 +131,7 @@ def train(config):
         weight_decay=config.weight_decay,
         max_grad_norm=config.max_grad_norm,
         push_to_hub=False,
-        load_best_model_at_end=True if config.valid_split is not None else False,
+        load_best_model_at_end=config.valid_split is not None,
         ddp_find_unused_parameters=False,
     )
 
@@ -171,8 +173,8 @@ def train(config):
     with open(f"{config.project_name}/README.md", "w") as f:
         f.write(model_card)
 
-    if config.push_to_hub:
-        if PartialState().process_index == 0:
+    if PartialState().process_index == 0:
+        if config.push_to_hub:
             save_training_params(config)
             logger.info("Pushing model to hub...")
             api = HfApi(token=config.token)

@@ -265,31 +265,32 @@ class Trainer:
             self.accelerator.clip_grad_norm_(params_to_clip, self.config.max_grad_norm)
 
     def _save_checkpoint(self):
-        if self.accelerator.is_main_process:
-            if self.global_step % self.config.checkpointing_steps == 0:
+        if not self.accelerator.is_main_process:
+            return
+        if self.global_step % self.config.checkpointing_steps == 0:
                 # _before_ saving state, check if this save would set us over the `checkpoints_total_limit`
-                if self.config.checkpoints_total_limit is not None:
-                    checkpoints = os.listdir(self.config.project_name)
-                    checkpoints = [d for d in checkpoints if d.startswith("checkpoint")]
-                    checkpoints = sorted(checkpoints, key=lambda x: int(x.split("-")[1]))
+            if self.config.checkpoints_total_limit is not None:
+                checkpoints = os.listdir(self.config.project_name)
+                checkpoints = [d for d in checkpoints if d.startswith("checkpoint")]
+                checkpoints = sorted(checkpoints, key=lambda x: int(x.split("-")[1]))
 
                     # before we save the new checkpoint, we need to have at _most_ `checkpoints_total_limit - 1` checkpoints
-                    if len(checkpoints) >= self.config.checkpoints_total_limit:
-                        num_to_remove = len(checkpoints) - self.config.checkpoints_total_limit + 1
-                        removing_checkpoints = checkpoints[0:num_to_remove]
+                if len(checkpoints) >= self.config.checkpoints_total_limit:
+                    num_to_remove = len(checkpoints) - self.config.checkpoints_total_limit + 1
+                    removing_checkpoints = checkpoints[:num_to_remove]
 
-                        logger.info(
-                            f"{len(checkpoints)} checkpoints already exist, removing {len(removing_checkpoints)} checkpoints"
-                        )
-                        logger.info(f"removing checkpoints: {', '.join(removing_checkpoints)}")
+                    logger.info(
+                        f"{len(checkpoints)} checkpoints already exist, removing {len(removing_checkpoints)} checkpoints"
+                    )
+                    logger.info(f"removing checkpoints: {', '.join(removing_checkpoints)}")
 
-                        for removing_checkpoint in removing_checkpoints:
-                            removing_checkpoint = os.path.join(self.config.project_name, removing_checkpoint)
-                            shutil.rmtree(removing_checkpoint)
+                    for removing_checkpoint in removing_checkpoints:
+                        removing_checkpoint = os.path.join(self.config.project_name, removing_checkpoint)
+                        shutil.rmtree(removing_checkpoint)
 
-                save_path = os.path.join(self.config.project_name, f"checkpoint-{self.global_step}")
-                self.accelerator.save_state(save_path)
-                logger.info(f"Saved state to {save_path}")
+            save_path = os.path.join(self.config.project_name, f"checkpoint-{self.global_step}")
+            self.accelerator.save_state(save_path)
+            logger.info(f"Saved state to {save_path}")
 
     def _get_model_pred(self, batch, channels, noisy_model_input, timesteps, bsz):
         if self.config.xl:
@@ -313,7 +314,9 @@ class Trainer:
                     prompt=None,
                     text_input_ids_list=[self.tokens_one, self.tokens_two],
                 )
-                unet_added_conditions.update({"text_embeds": pooled_prompt_embeds.repeat(elems_to_repeat, 1)})
+                unet_added_conditions["text_embeds"] = pooled_prompt_embeds.repeat(
+                    elems_to_repeat, 1
+                )
                 prompt_embeds = prompt_embeds.repeat(elems_to_repeat, 1, 1)
                 model_pred = self.unet(
                     noisy_model_input,

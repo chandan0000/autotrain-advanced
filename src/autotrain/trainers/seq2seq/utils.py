@@ -53,8 +53,7 @@ def create_model_card(config, trainer):
     else:
         eval_scores = "No validation metrics available"
 
-    model_card = MODEL_CARD.format(
+    return MODEL_CARD.format(
         dataset=config.data_path,
         validation_metrics=eval_scores,
     )
-    return model_card

@@ -30,9 +30,7 @@ def optimize(trial, model_name, xtrain, xvalid, ytrain, yvalid, eval_metric, tas
         params = trial
     else:
         params = utils.get_params(trial, model_name, task)
-    labels = None
-    if task == "multi_class_classification":
-        labels = np.unique(ytrain)
+    labels = np.unique(ytrain) if task == "multi_class_classification" else None
     metrics = utils.TabularMetrics(sub_task=task, labels=labels)
 
     if task in ("binary_classification", "multi_class_classification", "single_column_regression"):
@@ -75,13 +73,10 @@ def optimize(trial, model_name, xtrain, xvalid, ytrain, yvalid, eval_metric, tas
                 )
             else:
                 _m.fit(xtrain, ytrain[:, idx])
-            if task == "multi_column_regression":
-                ypred_temp = _m.predict(xvalid)
+            if task != "multi_column_regression" and _model.use_predict_proba:
+                ypred_temp = _m.predict_proba(xvalid)[:, 1]
             else:
-                if _model.use_predict_proba:
-                    ypred_temp = _m.predict_proba(xvalid)[:, 1]
-                else:
-                    ypred_temp = _m.predict(xvalid)
+                ypred_temp = _m.predict(xvalid)
             ypred.append(ypred_temp)
         ypred = np.column_stack(ypred)
 
@@ -223,7 +218,7 @@ def train(config):
     if scaler is not None:
         numeric_steps.append(("num_scaler", scaler))
 
-    if len(numeric_steps) > 0:
+    if numeric_steps:
         numeric_transformer = pipeline.Pipeline(numeric_steps)
         transformers.append(("numeric", numeric_transformer, config.numerical_columns))
 
@@ -232,7 +227,7 @@ def train(config):
     if imputer is not None:
         categorical_steps.append(("cat_imputer", imputer))
 
-    if len(config.categorical_columns) > 0:
+    if config.categorical_columns:
         if config.model in ("xgboost", "lightgbm", "randomforest", "catboost", "extratrees"):
             categorical_steps.append(
                 (
@@ -252,11 +247,11 @@ def train(config):
                 )
             )
 
-    if len(categorical_steps) > 0:
+    if categorical_steps:
         categorical_transformer = pipeline.Pipeline(categorical_steps)
         transformers.append(("categorical", categorical_transformer, config.categorical_columns))
 
-    if len(transformers) > 0:
+    if transformers:
         preprocessor = ColumnTransformer(transformers=transformers, verbose=True, n_jobs=-1)
         logger.info(f"Preprocessor: {preprocessor}")
 
@@ -269,17 +264,17 @@ def train(config):
     # determine sub_task
     if config.task == "classification":
         if len(target_encoders) == 1:
-            if len(target_encoders[config.target_columns[0]].classes_) == 2:
-                sub_task = "binary_classification"
-            else:
-                sub_task = "multi_class_classification"
+            sub_task = (
+                "binary_classification"
+                if len(target_encoders[config.target_columns[0]].classes_) == 2
+                else "multi_class_classification"
+            )
         else:
             sub_task = "multi_label_classification"
+    elif len(config.target_columns) > 1:
+        sub_task = "multi_column_regression"
     else:
-        if len(config.target_columns) > 1:
-            sub_task = "multi_column_regression"
-        else:
-            sub_task = "single_column_regression"
+        sub_task = "single_column_regression"
 
     eval_metric, direction = utils.get_metric_direction(sub_task)
 

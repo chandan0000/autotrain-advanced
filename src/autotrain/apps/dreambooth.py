@@ -258,7 +258,7 @@ def main():
         def _add_job(components):
             if not components[training_data]:
                 raise gr.Error("Please upload training images first.")
-            if len(str(components[hyp_prompt].strip())) == 0:
+            if not str(components[hyp_prompt].strip()):
                 raise gr.Error("Prompt cannot be empty.")
             if components[param_choice] == "AutoTrain" and components[autotrain_backend] != "AutoTrain":
                 raise gr.Error("AutoTrain param choice is only available with AutoTrain backend.")

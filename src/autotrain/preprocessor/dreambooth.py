@@ -44,9 +44,7 @@ class DreamboothPreprocessorV2:
         )
 
     def _upload_concept_prompts(self, api):
-        _prompts = {}
-        _prompts["concept1"] = self.concept_name
-
+        _prompts = {"concept1": self.concept_name}
         prompts = json.dumps(_prompts)
         prompts = prompts.encode("utf-8")
         prompts = io.BytesIO(prompts)
@@ -67,8 +65,7 @@ class DreamboothPreprocessorV2:
             f.write(_file)
 
     def _save_concept_prompts(self):
-        _prompts = {}
-        _prompts["concept1"] = self.concept_name
+        _prompts = {"concept1": self.concept_name}
         path = f"autotrain-data-{self.project_name}/prompts.json"
         with open(path, "w", encoding="utf-8") as f:
             json.dump(_prompts, f)
@@ -120,9 +117,7 @@ class DreamboothPreprocessor:
         )
 
     def _upload_concept_prompts(self, api):
-        _prompts = {}
-        _prompts["concept1"] = self.concept_name
-
+        _prompts = {"concept1": self.concept_name}
         prompts = json.dumps(_prompts)
         prompts = prompts.encode("utf-8")
         prompts = io.BytesIO(prompts)

@@ -19,7 +19,7 @@ except ImportError:
 def count_images(directory):
     files_grabbed = []
     for files in VALID_IMAGE_EXTENSIONS:
-        files_grabbed.extend(glob.glob(os.path.join(directory, "*" + files)))
+        files_grabbed.extend(glob.glob(os.path.join(directory, f"*{files}")))
     return len(files_grabbed)
 
 

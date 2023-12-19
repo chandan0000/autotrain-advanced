@@ -27,11 +27,7 @@ TABULAR_TASKS = {
 }
 
 
-TASKS = {
-    **NLP_TASKS,
-    **VISION_TASKS,
-    **TABULAR_TASKS,
-}
+TASKS = NLP_TASKS | VISION_TASKS | TABULAR_TASKS
 
 COLUMN_MAPPING = {
     "text_binary_classification": ("text", "label"),

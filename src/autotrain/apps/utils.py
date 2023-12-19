@@ -108,27 +108,26 @@ def _login_user(user_token):
 def fetch_training_params_df(
     param_choice, jobs_df, training_params, model_choice, autotrain_backend, hide_model_param=False
 ):
-    if param_choice == "AutoTrain":
-        # create a new dataframe from dict
+    if (
+        param_choice != "AutoTrain"
+        and len(jobs_df) == 0
+        or param_choice == "AutoTrain"
+    ):
         _training_params_df = pd.DataFrame([training_params])
     else:
-        # add row to the dataframe
-        if len(jobs_df) == 0:
-            _training_params_df = pd.DataFrame([training_params])
-        else:
-            _training_params_df = copy.deepcopy(jobs_df)
-            _training_params_df.columns = [f"hyp_{c}" for c in _training_params_df.columns]
-            # convert dataframe to list of dicts
-            _training_params_df = _training_params_df.to_dict(orient="records")
-            # append new dict to the list
-            _training_params_df.append(training_params)
-            _training_params_df = pd.DataFrame(_training_params_df)
-            # drop rows with all nan values
-            _training_params_df.replace("", np.nan, inplace=True)
-            # Drop rows with all missing values
-            _training_params_df = _training_params_df.dropna(how="all")
-            # Drop columns with all missing values
-            _training_params_df = _training_params_df.dropna(axis=1, how="all")
+        _training_params_df = copy.deepcopy(jobs_df)
+        _training_params_df.columns = [f"hyp_{c}" for c in _training_params_df.columns]
+        # convert dataframe to list of dicts
+        _training_params_df = _training_params_df.to_dict(orient="records")
+        # append new dict to the list
+        _training_params_df.append(training_params)
+        _training_params_df = pd.DataFrame(_training_params_df)
+        # drop rows with all nan values
+        _training_params_df.replace("", np.nan, inplace=True)
+        # Drop rows with all missing values
+        _training_params_df = _training_params_df.dropna(how="all")
+        # Drop columns with all missing values
+        _training_params_df = _training_params_df.dropna(axis=1, how="all")
 
     # remove hyp_ from column names
     _training_params_df.columns = [c[len("hyp_") :] for c in _training_params_df.columns]
@@ -145,8 +144,11 @@ def clear_jobs(jobs_df):
 
 
 def handle_model_choice_change(model_choice):
-    op = []
-    op.append(gr.DataFrame.update(value=pd.DataFrame(), visible=False, interactive=False))
+    op = [
+        gr.DataFrame.update(
+            value=pd.DataFrame(), visible=False, interactive=False
+        )
+    ]
     if model_choice == "AutoTrain":
         op.append(gr.Dropdown.update(value="AutoTrain", interactive=False))
         op.append(gr.Dropdown.update(value="AutoTrain", interactive=False))

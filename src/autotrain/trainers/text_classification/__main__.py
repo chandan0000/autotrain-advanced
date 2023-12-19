@@ -50,16 +50,15 @@ def train(config):
             logger.info("loading dataset from csv")
             train_data = pd.read_csv(train_path)
             train_data = Dataset.from_pandas(train_data)
+        elif config.data_path.startswith("autotrain-data-"):
+            logger.info("loading dataset from disk")
+            train_data = load_from_disk(config.data_path)[config.train_split]
         else:
-            if config.data_path.startswith("autotrain-data-"):
-                logger.info("loading dataset from disk")
-                train_data = load_from_disk(config.data_path)[config.train_split]
-            else:
-                train_data = load_dataset(
-                    config.data_path,
-                    split=config.train_split,
-                    token=config.token,
-                )
+            train_data = load_dataset(
+                config.data_path,
+                split=config.train_split,
+                token=config.token,
+            )
 
     if config.valid_split is not None:
         valid_path = f"{config.data_path}/{config.valid_split}.csv"
@@ -67,16 +66,15 @@ def train(config):
             logger.info("loading dataset from csv")
             valid_data = pd.read_csv(valid_path)
             valid_data = Dataset.from_pandas(valid_data)
+        elif config.data_path.startswith("autotrain-data-"):
+            logger.info("loading dataset from disk")
+            valid_data = load_from_disk(config.data_path)[config.valid_split]
         else:
-            if config.data_path.startswith("autotrain-data-"):
-                logger.info("loading dataset from disk")
-                valid_data = load_from_disk(config.data_path)[config.valid_split]
-            else:
-                valid_data = load_dataset(
-                    config.data_path,
-                    split=config.valid_split,
-                    token=config.token,
-                )
+            valid_data = load_dataset(
+                config.data_path,
+                split=config.valid_split,
+                token=config.token,
+            )
 
     classes = train_data.features[config.target_column].names
     label2id = {c: i for i, c in enumerate(classes)}
@@ -137,7 +135,9 @@ def train(config):
         per_device_eval_batch_size=2 * config.batch_size,
         learning_rate=config.lr,
         num_train_epochs=config.epochs,
-        evaluation_strategy=config.evaluation_strategy if config.valid_split is not None else "no",
+        evaluation_strategy=config.evaluation_strategy
+        if config.valid_split is not None
+        else "no",
         logging_steps=logging_steps,
         save_total_limit=config.save_total_limit,
         save_strategy=config.save_strategy,
@@ -150,7 +150,7 @@ def train(config):
         weight_decay=config.weight_decay,
         max_grad_norm=config.max_grad_norm,
         push_to_hub=False,
-        load_best_model_at_end=True if config.valid_split is not None else False,
+        load_best_model_at_end=config.valid_split is not None,
         ddp_find_unused_parameters=False,
     )
 
@@ -192,8 +192,8 @@ def train(config):
     with open(f"{config.project_name}/README.md", "w") as f:
         f.write(model_card)
 
-    if config.push_to_hub:
-        if PartialState().process_index == 0:
+    if PartialState().process_index == 0:
+        if config.push_to_hub:
             save_training_params(config)
             logger.info("Pushing model to hub...")
             api = HfApi(token=config.token)

@@ -254,7 +254,7 @@ def main():
 
         param_choice.change(
             _handle_param_choice_change,
-            inputs=set([param_choice]),
+            inputs={param_choice},
             outputs=hyperparameters + [jobs_df],
         )
 

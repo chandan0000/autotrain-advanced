@@ -260,7 +260,7 @@ def main():
                 _ = pd.read_csv(components[training_data][0].name, nrows=2).columns.tolist()
             except TypeError:
                 raise gr.Error("Please upload training data first.")
-            if len(str(components[col_map_text].strip())) == 0:
+            if not str(components[col_map_text].strip()):
                 raise gr.Error("Text column cannot be empty.")
             if components[param_choice] == "AutoTrain" and components[autotrain_backend] != "AutoTrain":
                 raise gr.Error("AutoTrain param choice is only available with AutoTrain backend.")

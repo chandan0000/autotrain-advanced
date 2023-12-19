@@ -214,7 +214,7 @@ def train(config):
                     safe_serialization=True,
                 )
         else:
-            if len(text_encoder_lora_layers_to_save) > 0:
+            if text_encoder_lora_layers_to_save:
                 LoraLoaderMixin.save_lora_weights(
                     output_dir,
                     unet_lora_layers=unet_lora_layers_to_save,

@@ -53,16 +53,15 @@ class TextBinaryClassificationPreprocessor:
     def split(self):
         if self.valid_data is not None:
             return self.train_data, self.valid_data
-        else:
-            train_df, valid_df = train_test_split(
-                self.train_data,
-                test_size=self.test_size,
-                random_state=self.seed,
-                stratify=self.train_data[self.label_column],
-            )
-            train_df = train_df.reset_index(drop=True)
-            valid_df = valid_df.reset_index(drop=True)
-            return train_df, valid_df
+        train_df, valid_df = train_test_split(
+            self.train_data,
+            test_size=self.test_size,
+            random_state=self.seed,
+            stratify=self.train_data[self.label_column],
+        )
+        train_df = train_df.reset_index(drop=True)
+        valid_df = valid_df.reset_index(drop=True)
+        return train_df, valid_df
 
     def prepare_columns(self, train_df, valid_df):
         train_df.loc[:, "autotrain_text"] = train_df[self.text_column]
@@ -120,15 +119,14 @@ class TextSingleColumnRegressionPreprocessor(TextBinaryClassificationPreprocesso
     def split(self):
         if self.valid_data is not None:
             return self.train_data, self.valid_data
-        else:
-            train_df, valid_df = train_test_split(
-                self.train_data,
-                test_size=self.test_size,
-                random_state=self.seed,
-            )
-            train_df = train_df.reset_index(drop=True)
-            valid_df = valid_df.reset_index(drop=True)
-            return train_df, valid_df
+        train_df, valid_df = train_test_split(
+            self.train_data,
+            test_size=self.test_size,
+            random_state=self.seed,
+        )
+        train_df = train_df.reset_index(drop=True)
+        valid_df = valid_df.reset_index(drop=True)
+        return train_df, valid_df
 
 
 @dataclass
@@ -268,15 +266,14 @@ class Seq2SeqPreprocessor:
     def split(self):
         if self.valid_data is not None:
             return self.train_data, self.valid_data
-        else:
-            train_df, valid_df = train_test_split(
-                self.train_data,
-                test_size=self.test_size,
-                random_state=self.seed,
-            )
-            train_df = train_df.reset_index(drop=True)
-            valid_df = valid_df.reset_index(drop=True)
-            return train_df, valid_df
+        train_df, valid_df = train_test_split(
+            self.train_data,
+            test_size=self.test_size,
+            random_state=self.seed,
+        )
+        train_df = train_df.reset_index(drop=True)
+        valid_df = valid_df.reset_index(drop=True)
+        return train_df, valid_df
 
     def prepare_columns(self, train_df, valid_df):
         train_df.loc[:, "autotrain_text"] = train_df[self.text_column]

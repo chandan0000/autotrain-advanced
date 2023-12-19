@@ -46,9 +46,9 @@ class ImageClassificationPreprocessor:
             if len(image_files) != len(os.listdir(subfolder)):
                 raise ValueError(f"{subfolder} should not contain any other files except image files.")
 
-            # Check if there are no subfolders inside subfolders
-            subfolders_in_subfolder = [f.path for f in os.scandir(subfolder) if f.is_dir()]
-            if len(subfolders_in_subfolder) > 0:
+            if subfolders_in_subfolder := [
+                f.path for f in os.scandir(subfolder) if f.is_dir()
+            ]:
                 raise ValueError(f"{subfolder} should not contain any subfolders.")
 
         if self.valid_data:
@@ -60,8 +60,16 @@ class ImageClassificationPreprocessor:
             subfolders = [f.path for f in os.scandir(self.valid_data) if f.is_dir()]
 
             # make sure that the subfolders in train and valid data are the same
-            train_subfolders = set(os.path.basename(f.path) for f in os.scandir(self.train_data) if f.is_dir())
-            valid_subfolders = set(os.path.basename(f.path) for f in os.scandir(self.valid_data) if f.is_dir())
+            train_subfolders = {
+                os.path.basename(f.path)
+                for f in os.scandir(self.train_data)
+                if f.is_dir()
+            }
+            valid_subfolders = {
+                os.path.basename(f.path)
+                for f in os.scandir(self.valid_data)
+                if f.is_dir()
+            }
             if train_subfolders != valid_subfolders:
                 raise ValueError(f"{self.valid_data} should have the same subfolders as {self.train_data}.")
 
@@ -78,9 +86,9 @@ class ImageClassificationPreprocessor:
                 if len(image_files) != len(os.listdir(subfolder)):
                     raise ValueError(f"{subfolder} should not contain any other files except image files.")
 
-                # Check if there are no subfolders inside subfolders
-                subfolders_in_subfolder = [f.path for f in os.scandir(subfolder) if f.is_dir()]
-                if len(subfolders_in_subfolder) > 0:
+                if subfolders_in_subfolder := [
+                    f.path for f in os.scandir(subfolder) if f.is_dir()
+                ]:
                     raise ValueError(f"{subfolder} should not contain any subfolders.")
 
     def split(self, df):
@@ -104,17 +112,6 @@ class ImageClassificationPreprocessor:
         if self.valid_data:
             shutil.copytree(self.train_data, os.path.join(data_dir, "train"))
             shutil.copytree(self.valid_data, os.path.join(data_dir, "validation"))
-
-            dataset = load_dataset("imagefolder", data_dir=data_dir)
-            dataset = dataset.rename_columns({"image": "autotrain_image", "label": "autotrain_label"})
-            if self.local:
-                dataset.save_to_disk(f"autotrain-data-{self.project_name}")
-            else:
-                dataset.push_to_hub(
-                    f"{self.username}/autotrain-data-{self.project_name}",
-                    private=True,
-                    token=self.token,
-                )
 
         else:
             subfolders = [f.path for f in os.scandir(self.train_data) if f.is_dir()]
@@ -145,13 +142,13 @@ class ImageClassificationPreprocessor:
                     os.path.join(data_dir, "validation", row.subfolder, row.image_filename),
                 )
 
-            dataset = load_dataset("imagefolder", data_dir=data_dir)
-            dataset = dataset.rename_columns({"image": "autotrain_image", "label": "autotrain_label"})
-            if self.local:
-                dataset.save_to_disk(f"autotrain-data-{self.project_name}")
-            else:
-                dataset.push_to_hub(
-                    f"{self.username}/autotrain-data-{self.project_name}",
-                    private=True,
-                    token=self.token,
-                )
+        dataset = load_dataset("imagefolder", data_dir=data_dir)
+        dataset = dataset.rename_columns({"image": "autotrain_image", "label": "autotrain_label"})
+        if self.local:
+            dataset.save_to_disk(f"autotrain-data-{self.project_name}")
+        else:
+            dataset.push_to_hub(
+                f"{self.username}/autotrain-data-{self.project_name}",
+                private=True,
+                token=self.token,
+            )

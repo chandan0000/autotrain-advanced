@@ -21,8 +21,7 @@ from autotrain.trainers.text_classification.params import TextClassificationPara
 def get_process_status(pid):
     try:
         process = psutil.Process(pid)
-        proc_status = process.status()
-        return proc_status
+        return process.status()
     except psutil.NoSuchProcess:
         logger.info(f"No process found with PID: {pid}")
         return "Completed"
@@ -62,7 +61,7 @@ def user_authentication(token):
         cookies = {"token": token}
     try:
         response = requests.get(
-            config.HF_API + "/api/whoami-v2",
+            f"{config.HF_API}/api/whoami-v2",
             headers=headers,
             cookies=cookies,
             timeout=3,

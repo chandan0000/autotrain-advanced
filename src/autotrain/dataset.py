@@ -58,8 +58,7 @@ class AutoTrainDreamboothDataset:
     local: bool = False
 
     def __str__(self) -> str:
-        info = f"Dataset: {self.project_name} ({self.task})\n"
-        return info
+        return f"Dataset: {self.project_name} ({self.task})\n"
 
     def __post_init__(self):
         self.task = "dreambooth"
@@ -123,10 +122,8 @@ class AutoTrainImageClassificationDataset:
         return self.num_files
 
     def _count_files(self):
-        num_files = 0
         zip_ref = zipfile.ZipFile(self.train_data, "r")
-        for _ in zip_ref.namelist():
-            num_files += 1
+        num_files = sum(1 for _ in zip_ref.namelist())
         if self.valid_data:
             zip_ref = zipfile.ZipFile(self.valid_data, "r")
             for _ in zip_ref.namelist():
@@ -218,11 +215,7 @@ class AutoTrainDataset:
                 train_df.append(file)
             else:
                 train_df.append(pd.read_csv(file))
-        if len(train_df) > 1:
-            train_df = pd.concat(train_df)
-        else:
-            train_df = train_df[0]
-
+        train_df = pd.concat(train_df) if len(train_df) > 1 else train_df[0]
         valid_df = None
         if len(self.valid_data) > 0:
             valid_df = []
@@ -231,10 +224,7 @@ class AutoTrainDataset:
                     valid_df.append(file)
                 else:
                     valid_df.append(pd.read_csv(file))
-            if len(valid_df) > 1:
-                valid_df = pd.concat(valid_df)
-            else:
-                valid_df = valid_df[0]
+            valid_df = pd.concat(valid_df) if len(valid_df) > 1 else valid_df[0]
         return train_df, valid_df
 
     @property

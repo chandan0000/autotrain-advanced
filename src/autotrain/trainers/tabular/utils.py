@@ -141,28 +141,29 @@ class TabularMetrics:
                 else:
                     metrics[metric_name] = metric_func(y_true, y_pred[:, 1] >= 0.5)
             elif self.sub_task == "mul":
-                if metric_name in (
-                    "accuracy",
-                    "f1_macro",
-                    "f1_micro",
-                    "f1_weighted",
-                    "precision_macro",
-                    "precision_micro",
-                    "precision_weighted",
-                    "recall_macro",
-                    "recall_micro",
-                    "recall_weighted",
-                ):
-                    metrics[metric_name] = metric_func(y_true, np.argmax(y_pred, axis=1))
-                else:
-                    metrics[metric_name] = metric_func(y_true, y_pred)
+                metrics[metric_name] = (
+                    metric_func(y_true, np.argmax(y_pred, axis=1))
+                    if metric_name
+                    in (
+                        "accuracy",
+                        "f1_macro",
+                        "f1_micro",
+                        "f1_weighted",
+                        "precision_macro",
+                        "precision_micro",
+                        "precision_weighted",
+                        "recall_macro",
+                        "recall_micro",
+                        "recall_weighted",
+                    )
+                    else metric_func(y_true, y_pred)
+                )
+            elif metric_name == "rmsle":
+                temp_pred = copy.deepcopy(y_pred)
+                temp_pred = np.clip(y_pred, 0, None)
+                metrics[metric_name] = metric_func(y_true, temp_pred)
             else:
-                if metric_name == "rmsle":
-                    temp_pred = copy.deepcopy(y_pred)
-                    temp_pred = np.clip(y_pred, 0, None)
-                    metrics[metric_name] = metric_func(y_true, temp_pred)
-                else:
-                    metrics[metric_name] = metric_func(y_true, y_pred)
+                metrics[metric_name] = metric_func(y_true, y_pred)
         return metrics
 
 
@@ -181,48 +182,58 @@ class TabularModel:
             self.pipeline = pipeline.Pipeline([("model", _model)])
 
     def _get_model(self):
-        if self.model in _MODELS:
-            if self.sub_task in CLASSIFICATION_TASKS:
-                if self.model in ("svm", "ridge"):
-                    self.use_predict_proba = False
-                return _MODELS[self.model]["classification"](**self.params)
-            elif self.sub_task in REGRESSION_TASKS:
-                self.use_predict_proba = False
-                return _MODELS[self.model]["regression"](**self.params)
-            else:
-                raise ValueError("Invalid task")
-        else:
+        if self.model not in _MODELS:
             raise ValueError("Invalid model")
+        if self.sub_task in CLASSIFICATION_TASKS:
+            if self.model in ("svm", "ridge"):
+                self.use_predict_proba = False
+            return _MODELS[self.model]["classification"](**self.params)
+        elif self.sub_task in REGRESSION_TASKS:
+            self.use_predict_proba = False
+            return _MODELS[self.model]["regression"](**self.params)
+        else:
+            raise ValueError("Invalid task")
 
 
 def get_params(trial, model, task):
     if model == "xgboost":
-        params = {
-            "learning_rate": trial.suggest_float("learning_rate", 1e-2, 0.25, log=True),
-            "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 100.0, log=True),
-            "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 100.0, log=True),
+        return {
+            "learning_rate": trial.suggest_float(
+                "learning_rate", 1e-2, 0.25, log=True
+            ),
+            "reg_lambda": trial.suggest_float(
+                "reg_lambda", 1e-8, 100.0, log=True
+            ),
+            "reg_alpha": trial.suggest_float(
+                "reg_alpha", 1e-8, 100.0, log=True
+            ),
             "subsample": trial.suggest_float("subsample", 0.1, 1.0),
-            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.1, 1.0),
+            "colsample_bytree": trial.suggest_float(
+                "colsample_bytree", 0.1, 1.0
+            ),
             "max_depth": trial.suggest_int("max_depth", 1, 9),
-            "early_stopping_rounds": trial.suggest_int("early_stopping_rounds", 100, 500),
-            "n_estimators": trial.suggest_categorical("n_estimators", [7000, 15000, 20000]),
+            "early_stopping_rounds": trial.suggest_int(
+                "early_stopping_rounds", 100, 500
+            ),
+            "n_estimators": trial.suggest_categorical(
+                "n_estimators", [7000, 15000, 20000]
+            ),
             "tree_method": "hist",
             "random_state": 42,
         }
-
-        return params
-
     if model == "logistic_regression":
         if task in CLASSIFICATION_TASKS:
-            params = {
+            return {
                 "C": trial.suggest_float("C", 1e-8, 1e3, log=True),
-                "fit_intercept": trial.suggest_categorical("fit_intercept", [True, False]),
-                "solver": trial.suggest_categorical("solver", ["liblinear", "saga"]),
+                "fit_intercept": trial.suggest_categorical(
+                    "fit_intercept", [True, False]
+                ),
+                "solver": trial.suggest_categorical(
+                    "solver", ["liblinear", "saga"]
+                ),
                 "penalty": trial.suggest_categorical("penalty", ["l1", "l2"]),
                 "n_jobs": -1,
             }
-            return params
-
         raise ValueError("Task not supported")
 
     if model == "random_forest":
